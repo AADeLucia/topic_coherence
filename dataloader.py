@@ -2,44 +2,82 @@
 # Author: Suzanna Sia
 
 # Standard imports
-#import random
-#import numpy as np
-#import pdb
-#import math
-#import os, sys
-
-# argparser
-#import argparse
-#from distutils.util import str2bool
-#argparser = argparser.ArgumentParser()
-#argparser.add_argument('--x', type=float, default=0)
 import pdb
-# Custom imports
-
-def load_topic_words(topic_wordf):
-    DELIM = ","
-
-    with open(topic_wordf, 'r') as f:
-        topic_words = f.readlines()
-
-    topic_words = [tw.strip().replace(DELIM,'').split() for tw in topic_words]
-
-    return topic_words
+import gzip
 
 
-def load_word_docids(word_dcf):
-    DELIM1 = "\t"
-    DELIM2 = ";"
+class DataLoader:
+    def __init__(self, format=None):
+        """
 
-    word_dc = {}
-    with open(word_dcf, 'r') as f:
-        data = f.readlines()
+        :param format: None for default, "mallet" to parse MALLET output
+        """
+        self.format = format
+        return
 
-    for line in data:
-        word, docids = line.split(DELIM1)
-        word_dc[word] = set(docids.strip().split(DELIM2))
-    
-    return word_dc
+    def load_topic_words(self, topic_word_file):
+        if self.format == "mallet":
+            return self._load_topics_mallet(topic_word_file)
+        else:
+            return self._load_topics_default(topic_word_file)
 
+    @staticmethod
+    def _load_topics_mallet(topic_word_file):
+        topic_words = []
+        with open(topic_word_file) as f:
+            for line in f.readlines():
+                temp = line.split("\t")[-1].strip()
+                topic_words.append(temp.split())
 
+        return topic_words
 
+    @staticmethod
+    def _load_topics_default(topic_word_file):
+        DELIM = ";"
+
+        with open(topic_wordf, 'r') as f:
+            topic_words = f.readlines()
+
+        topic_words = [tw.strip().replace(DELIM, '').split() for tw in topic_words]
+
+        return topic_words
+
+    def load_word_docids(self, word_dcf):
+        if self.format == "mallet":
+            return self._load_word_docs_mallet(word_dcf)
+        else:
+            return self._load_word_docs_default(word_dcf)
+
+    @staticmethod
+    def _load_word_docs_default(word_dcf):
+        DELIM1 = "\t"
+        DELIM2 = ";"
+
+        word_dc = {}
+        with open(word_dcf, 'r') as f:
+            data = f.readlines()
+
+        for line in data:
+            word, docids = line.split(DELIM1)
+            word_dc[word] = set(docids.strip().split(DELIM2))
+
+        return word_dc
+
+    @staticmethod
+    def _load_word_docs_mallet(word_dcf):
+        """
+        Input is MALLET model state gzipped file
+        :param word_dcf:
+        :return:
+        """
+        # MALLET model state format: doc source pos typeindex type topic
+        # Skip all lines that start with a #
+        word_doc_dict = {}
+        with gzip.open(word_dcf, mode="rt") as f:
+            for line in f.readlines():
+                if line.startswith("#"):
+                    continue
+                document_id, source, position, type_index, token, topic_assignment = [i.strip() for i in line.split()]
+                word_doc_dict[token] = word_doc_dict.get(token, []) + [document_id]
+
+        return word_doc_dict
