@@ -2,46 +2,53 @@
 # Author: Suzanna Sia
 # Credits: Ayush Dalmia
 
-# Standard imports
-#import random
 import numpy as np
-#import pdb
 import math
-import os, sys
-
-# argparser
+import os
+import sys
 import argparse
 import pdb
-#from distutils.util import str2bool
-parser = argparse.ArgumentParser()
-parser.add_argument('--nfiles', type=int, default=0)
-parser.add_argument('--topic_wordf', type=str)
-parser.add_argument('--word_docf', type=str)
-parser.add_argument('--ntopics', type=int)
-args = parser.parse_args()
+import logging
+from dataloader import DataLoader
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
-# Custom imports
-import dataloader
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--nfiles', type=int, default=0, help="Number of documents")
+    parser.add_argument('--topic-word-file', type=str,
+                        help="Word topic file. Format should be one line per topic, with the top topic words comma delimited")
+    parser.add_argument('--word-doc-file', type=str)
+    parser.add_argument('--ntopics', type=int, help="Number of topics")
+    parser.add_argument('--format', default=None, help="Format of input files. Stay 'None' for default format or 'mallet'"
+                                                       "for a MALLET input parser. 'mallet' assumes the input is the default"
+                                                       "MALLET output from topic_keys and model_state.gz")
+    return parser.parse_args()
+
 
 def main():
+    args = parse_args()
 
-    topic_words = dataloader.load_topic_words(args.topic_wordf)
-    word_doc_counts = dataloader.load_word_docids(args.word_docf)
+    dl = DataLoader(format=args.format)
+    topic_words = dl.load_topic_words(args.topic_word_file)
+    logging.info(f"Loaded topic words from {args.topic_word_file}")
+    word_doc_counts = dl.load_word_docids(args.word_doc_file)
+    logging.info(f"Loaded word document counts from {args.word_doc_file}")
 
-    if args.nfiles==0:
+    if args.nfiles == 0:
         total_docs = set()
         for word in word_doc_counts.keys():
             total_docs = total_docs.union(word_doc_counts[word])
 
-        print("nfiles not provided - calculating from dataset:", len(total_docs))
+        logging.warning(f"nfiles not provided - calculating from dataset: {len(total_docs)}")
         args.nfiles = len(total_docs)
 
-
+    logging.info("Calculating average NPMI...")
     average_npmi_topics(topic_words, args.ntopics, word_doc_counts, args.nfiles)
 
-def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles):
 
+def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles):
     eps = 10**(-12)
     
     all_topics = []
@@ -68,10 +75,10 @@ def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles):
         all_topics.append(np.mean(topic_score))
     
     for k in range(ntopics):
-        print(np.around(all_topics[k],5), " ".join(topic_words[k]))
+        logging.info(np.around(all_topics[k], 5), " ".join(topic_words[k]))
 
     avg_score = np.around(np.mean(all_topics), 5)
-    print(f"\nAverage NPMI for {ntopics} topics: {avg_score}")
+    logging.info(f"\nAverage NPMI for {ntopics} topics: {avg_score}")
 
     return avg_score
 
