@@ -17,13 +17,14 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--nfiles', type=int, default=0, help="Number of documents")
-    parser.add_argument('--topic-word-file', type=str,
+    parser.add_argument('--topic-word-file', type=str, required=True,
                         help="Word topic file. Format should be one line per topic, with the top topic words comma delimited")
-    parser.add_argument('--word-doc-file', type=str)
-    parser.add_argument('--ntopics', type=int, help="Number of topics")
+    parser.add_argument('--word-doc-file', type=str, required=True)
+    parser.add_argument('--ntopics', type=int, help="Number of topics", required=True)
     parser.add_argument('--format', default=None, help="Format of input files. Stay 'None' for default format or 'mallet'"
                                                        "for a MALLET input parser. 'mallet' assumes the input is the default"
                                                        "MALLET output from topic_keys and model_state.gz")
+    parser.add_argument('--output-file', type=str, required=True, help="TSV file to save topic coherence scores")
     return parser.parse_args()
 
 
@@ -45,10 +46,10 @@ def main():
         args.nfiles = len(total_docs)
 
     logging.info("Calculating average NPMI...")
-    average_npmi_topics(topic_words, args.ntopics, word_doc_counts, args.nfiles)
+    average_npmi_topics(topic_words, args.ntopics, word_doc_counts, args.nfiles, args.output_file)
 
 
-def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles):
+def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles, output_file):
     eps = 10**(-12)
     
     all_topics = []
@@ -73,9 +74,12 @@ def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles):
                 topic_score.append(npmi_w1w2)
 
         all_topics.append(np.mean(topic_score))
-    
-    for k in range(ntopics):
-        logging.info(np.around(all_topics[k], 5), " ".join(topic_words[k]))
+
+    with open(output_file, "w+") as f:
+        for k in range(ntopics):
+            temp = f"{k}\t{np.around(all_topics[k], 5)}\t{','.join(topic_words[k])}"
+            logging.info(temp)
+            f.write(f"{temp}\n")
 
     avg_score = np.around(np.mean(all_topics), 5)
     logging.info(f"\nAverage NPMI for {ntopics} topics: {avg_score}")
