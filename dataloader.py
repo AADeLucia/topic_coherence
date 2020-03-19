@@ -88,5 +88,5 @@ class DataLoader:
                 else:
                     word_doc_dict[token].add(document_id)
 
-        logging.debug(word_doc_dict)
+        # logging.debug(word_doc_dict)
         return word_doc_dict
