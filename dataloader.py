@@ -4,6 +4,8 @@
 # Standard imports
 import pdb
 import gzip
+import logging
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
 
 
 class DataLoader:
@@ -74,10 +76,17 @@ class DataLoader:
         # Skip all lines that start with a #
         word_doc_dict = {}
         with gzip.open(word_dcf, mode="rt") as f:
-            for line in f.readlines():
+            for i, line in enumerate(f.readlines()):
+                if i % 100000 == 0:
+                    logging.debug(f"On line {i:,}")
                 if line.startswith("#"):
                     continue
                 document_id, source, position, type_index, token, topic_assignment = [i.strip() for i in line.split()]
-                word_doc_dict[token] = word_doc_dict.get(token, []) + [document_id]
 
+                if token not in word_doc_dict:
+                    word_doc_dict[token] = set(document_id)
+                else:
+                    word_doc_dict[token].add(document_id)
+
+        logging.debug(word_doc_dict)
         return word_doc_dict
