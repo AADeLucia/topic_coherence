@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # Author: Suzanna Sia
 # Credits: Ayush Dalmia
+# Modifications for MALLET: Alexandra DeLucia
 
 import numpy as np
 import math
@@ -25,6 +26,8 @@ def parse_args():
                                                        "for a MALLET input parser. 'mallet' assumes the input is the default"
                                                        "MALLET output from topic_keys and model_state.gz")
     parser.add_argument('--output-file', type=str, required=True, help="TSV file to save topic coherence scores")
+    parser.add_argument('--topic_wordf', type=str)
+    parser.add_argument('--word_docf', type=str)
     return parser.parse_args()
 
 
@@ -68,8 +71,25 @@ def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles, output_fi
                 w1_dc = len(word_doc_counts.get(w1, set()))
                 w2_dc = len(word_doc_counts.get(w2, set()))
 
-                pmi_w1w2 = np.log(((w1w2_dc * nfiles) + eps) / ((w1_dc * w2_dc) + eps))
+                # what we had previously:
+                #pmi_w1w2 = np.log(((w1w2_dc * nfiles) + eps) / ((w1_dc * w2_dc) + eps))
+
+                # Correct eps:
+                pmi_w1w2 = np.log((w1w2_dc * nfiles) / ((w1_dc * w2_dc) + eps) + eps)
                 npmi_w1w2 = pmi_w1w2 / (- np.log( (w1w2_dc)/nfiles + eps))
+
+                # Which is equivalent to this:
+                #if w1w2_dc ==0: 
+                #    npmi_w1w2 = -1
+                #else:
+                #    pmi_w1w2 = np.log( (w1w2_dc * nfiles)/ (w1_dc*w2_dc))
+                #    npmi_w1w2 = pmi_w1w2 / (-np.log (w1w2_dc/nfiles))
+
+
+
+                if npmi_w1w2>1 or npmi_w1w2<-1:
+                    print("NPMI score not bounded for:", w1, w2, " a bug?")
+                    sys.exit(1)
 
                 topic_score.append(npmi_w1w2)
 
@@ -89,3 +109,5 @@ def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles, output_fi
 
 if __name__ == "__main__":
     main()
+
+
