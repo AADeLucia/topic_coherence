@@ -92,7 +92,7 @@ def average_npmi_topics(topic_words, ntopics, word_doc_counts, nfiles, output_fi
 
                 if npmi_w1w2>1 or npmi_w1w2<-1:
                     print(f"warning: NPMI score not bounded for:{w1}, {w2}, \
-                            score:{np.around(npmi_score,5)} ... rounding off")
+                            score:{np.around(npmi_w1w2,5)} ... rounding off")
 
                     if npmi_w1w2 > 1:
                         npmi_w1w2 = 1
