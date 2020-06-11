@@ -77,8 +77,8 @@ class DataLoader:
         word_doc_dict = {}
         with gzip.open(word_dcf, mode="rt") as f:
             for i, line in enumerate(f.readlines()):
-                if i % 100000 == 0:
-                    logging.debug(f"On line {i:,}")
+                #if i % 100000 == 0:
+                    #logging.debug(f"On line {i:,}")
                 if line.startswith("#"):
                     continue
                 document_id, source, position, type_index, token, topic_assignment = [i.strip() for i in line.split()]
